@@ -1,0 +1,65 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>FlightPlayBack.mxml</title>
+<link rel="stylesheet" type="text/css" href="../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="mxmlCdata">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="mxmlComponent">&lt;mx:VBox</span> xmlns:mx=&quot;<span class="mxmlString">http://www.adobe.com/2006/mxml</span>&quot; creationComplete=&quot;fillFlightInfo<span class="asBracket">()</span>&quot; horizontalCenter=&quot;<span class="mxmlString">0</span>&quot; verticalCenter=&quot;<span class="mxmlString">0</span>&quot; width=&quot;<span class="mxmlString">{</span>winwidth<span class="mxmlString">}</span>&quot; height=&quot;<span class="mxmlString">{</span>winheight<span class="mxmlString">}</span>&quot;<span class="mxmlComponent">&gt;</span>
+
+    <span class="mxmlTag">&lt;mx:Script&gt;</span>
+        <span class="asOperator">&lt;!</span><span class="asBracket">[</span>CDATA<span class="asBracket">[</span>
+            <span class="asReserved">import</span> mx.rpc.events.ResultEvent;
+            <span class="asReserved">import</span> mx.collections.ArrayCollection;
+            <span class="asReserved">import</span> mx.core.Application;
+            <span class="asReserved">import</span> mx.controls.Alert;
+            
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winwidth<span class="asOperator">:</span>Number <span class="asOperator">=</span> Capabilities.screenResolutionX<span class="asOperator">/</span>1.5;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winheight<span class="asOperator">:</span>Number <span class="asOperator">=</span> Capabilities.screenResolutionY<span class="asOperator">/</span>1.5;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> aryFlightsToReplay<span class="asOperator">:</span>Array <span class="asOperator">=</span> <span class="asReserved">new</span> Array<span class="asBracket">()</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> counter<span class="asOperator">:</span>int <span class="asOperator">=</span> 0;
+            <span class="asReserved">private</span> <span class="asVar">var</span> myTimer<span class="asOperator">:</span>Timer <span class="asOperator">=</span> <span class="asReserved">new</span> Timer<span class="asBracket">(</span>500, 1<span class="asBracket">)</span>;
+            <span class="asComment">// declare a persistent Timer (5 seconds)
+</span>            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> myTimer2<span class="asOperator">:</span>Timer <span class="asOperator">=</span> <span class="asReserved">new</span> Timer<span class="asBracket">(</span>5000, Application.application.aryFlightDetails.length<span class="asBracket">)</span>;
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> fillFlightInfo<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                aryFlightsToReplay <span class="asOperator">=</span> Application.application.aryFlightDetails;
+                myTimer.addEventListener<span class="asBracket">(</span><span class="asString">&quot;timer&quot;</span>, onTimer<span class="asBracket">)</span>;
+                myTimer2.addEventListener<span class="asBracket">(</span><span class="asString">&quot;timer&quot;</span>, onTimer<span class="asBracket">)</span>;
+                myTimer.start<span class="asBracket">()</span>;
+                btnClose.setFocus<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> onTimer<span class="asBracket">(</span>event<span class="asOperator">:</span>TimerEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                htmlFlightInfo.htmlText <span class="asOperator">=</span> Application.application.aryFlightDetails<span class="asBracket">[</span>counter<span class="asBracket">]</span>.FLIGHTDETAILS;
+                counter<span class="asOperator">++</span>;
+                myTimer2.start<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> onTimer2<span class="asBracket">(</span>event<span class="asOperator">:</span>TimerEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asReserved">if</span> <span class="asBracket">(</span>counter<span class="asOperator">&lt;</span>aryFlightsToReplay.length<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    htmlFlightInfo.htmlText <span class="asOperator">=</span> Application.application.aryFlightDetails<span class="asBracket">[</span>counter<span class="asBracket">]</span>.FLIGHTDETAILS;
+                    counter<span class="asOperator">++</span>;
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    closeWindow<span class="asBracket">()</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> closeWindow<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                Application.application.blnWindowOpen <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                <span class="asReserved">this</span>.stage.window.close<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+        <span class="asBracket">]]</span><span class="asOperator">&gt;</span>
+    <span class="mxmlTag">&lt;/mx:Script&gt;</span>
+    <span class="mxmlComponent">&lt;mx:Spacer</span> height=&quot;<span class="mxmlString">2</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:HBox&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Spacer</span> width=&quot;<span class="mxmlString">4</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnClose</span>&quot; label=&quot;<span class="mxmlString">Close</span>&quot; icon=&quot;<span class="mxmlString">@Embed(&apos;assets/images/door_out.png&apos;)</span>&quot; click=&quot;closeWindow<span class="asBracket">()</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+    <span class="mxmlComponent">&lt;mx:Spacer</span> height=&quot;<span class="mxmlString">2</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:HTML</span> id=&quot;<span class="mxmlString">htmlFlightInfo</span>&quot; width=&quot;<span class="mxmlString">{</span>winwidth<span class="mxmlString">}</span>&quot; height=&quot;<span class="mxmlString">{</span>winheight<span class="mxmlString">}</span>&quot;<span class="mxmlComponent">/&gt;</span>
+<span class="mxmlComponent">&lt;/mx:VBox&gt;</span></pre></body>
+</html>

@@ -1,2 +1,2 @@
 # GoFly
-Go Fly - Demo app created in support of my Adobe AIR Sams Publishing books featuring FlightAware API
+ Adobe AIR app supporting TY Adobe AIR in 24 Hours

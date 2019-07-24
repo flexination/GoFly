@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalCenter="0" creationComplete="initComp()" verticalCenter="0" width="{winwidth}" height="{winheight}">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.core.Application;
+			import mx.controls.Alert;
+			import mx.utils.ObjectUtil;
+			import mx.controls.HTML;
+			
+			[Bindable] private var winwidth:Number = 400;
+			[Bindable] private var winheight:Number = 400;
+			// embed images and declare persistent image classes
+			[Embed(source="assets/images/playback.png")]
+			[Bindable] public var imgPlayback:Class;
+			[Embed(source="assets/images/playback_off.png")]
+			[Bindable] public var imgPlaybackOff:Class;
+			public var newWindow:NativeWindow;
+			private var component:FlightPlayBack;
+			
+			private function initComp():void {
+				btnClose.setFocus();
+				//Alert.show(ObjectUtil.toString(Application.application.arcFlights.list.source[0].list.source));
+				Application.application.aryFlightDetails = Application.application.arcFlights.list.source[0].list.source;
+			}
+			
+			private function closeWindow():void {
+				Application.application.blnWindowOpen = false;
+				this.stage.window.close();
+			}
+
+ 	        private function getDetails():void {
+	        	if (dgFlights.selectedIndex > -1) {
+	        		Application.application.getArchFlightDetails(dgFlights.selectedItem.FLIGHTNUM, dgFlights.selectedItem.FLIGHTID);
+	        	} else {
+	        		// nothing
+	        		return;
+	        	}
+	        	//closeWindow();
+	        }
+
+			private function getFormattedDate(item:Object, column:DataGridColumn):String {
+				return dateformatter.format(item.FLIGHTLOOKUPTIMESTAMP);	
+			}
+			
+			private function replayAll():void {
+				newWindow = new NativeWindow(true, new NativeWindowInitOptions());
+				newWindow.title = "AIR (Apollo) in Flight PlayBack: " + Application.application.tiAirline.text + Application.application.tiFlightNo.text;
+				newWindow.stage.align = StageAlign.TOP_LEFT;
+				newWindow.stage.scaleMode = StageScaleMode.NO_SCALE;
+				newWindow.width = Capabilities.screenResolutionX/1.4;
+				newWindow.height = Capabilities.screenResolutionY/1.4;
+				component = new FlightPlayBack();
+				hiddenVBox.addChild(component);
+				hiddenVBox.removeChild(component);
+				newWindow.stage.addChild(component);
+				//closeWindow();
+			}						
+		]]>
+	</mx:Script>
+	
+	<mx:DateFormatter id="dateformatter" formatString="M/DD/YYYY J:NN"/>
+	
+	<mx:Spacer height="2"/>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:Button id="btnPlayAll" label="Play All" icon="{(Application.application.arcFlights.list.source[0].list.source.length!=0)?imgPlayback:imgPlaybackOff}" click="replayAll()" enabled="{(Application.application.arcFlights.list.source[0].list.source.length!=0)?true:false}"  toolTip="{(Application.application.arcFlights.list.source[0].list.source.length!=0)?'Click to playback a loop of this flight\'s details...':''}"/>
+		<mx:Button id="btnClose" label="Close" icon="@Embed('assets/images/door_out.png')" click="closeWindow()"/>
+	</mx:HBox>
+	<mx:Spacer height="2"/>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:DataGrid id="dgFlights" dataProvider="{Application.application.arcFlights.list.source[0].list.source}" itemClick="getDetails()" width="{winwidth * .95}" height="{winheight * .88}" toolTip="Select any flight snapshot to display the flight details...">
+				<mx:columns>
+					<mx:DataGridColumn headerText="Flight" dataField="FLIGHTNUM" width="80"/>
+					<mx:DataGridColumn headerText="Date" labelFunction="getFormattedDate" width="120"/>
+				</mx:columns>
+		</mx:DataGrid>
+	</mx:HBox>
+	<mx:Spacer height="2"/>
+	<mx:VBox id="hiddenVBox" visible="false"/>
+</mx:VBox>

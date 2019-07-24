@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" pageTitle="AIR (Apollo) In Flight" creationComplete="initApp()" layout="vertical" backgroundColor="#000040" width="558" height="275" viewSourceURL="http://labs.insideflex.com/airtraining/gofly/bin/srcview/index.html">
+	<mx:WebService id="wsFlight" wsdl="http://labs.insideflex.com/airtraining/gofly/info/airapps/cfcs/flight.cfc?wsdl" showBusyCursor="true">
+		<mx:operation name="getFlightDetails" result="getFlightDetailsHandler(event)" fault="wsfaultHandler(event)"/>
+		<mx:operation name="getArchivedFlights" result="getArchivedFlightsHandler(event)" fault="wsdefaultHandler(event)"/>
+		<mx:operation name="getArchivedFlightDetails" result="getArchivedFlightDetailsHandler(event)" fault="wsdefaultHandler(event)"/>
+	</mx:WebService>
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import flash.events.NetStatusEvent;
+			import mx.controls.HTML;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.controls.Alert;
+			import mx.utils.ObjectUtil;
+			import mx.utils.ArrayUtil;
+			import mx.containers.TitleWindow;
+			import mx.events.ValidationResultEvent;
+			import mx.controls.ToolTip;
+			import mx.managers.ToolTipManager;
+			import mx.managers.CursorManager;
+			import flash.filesystem.FileMode;
+			import flash.filesystem.FileStream;
+			import flash.filesystem.File;
+			import flash.net.registerClassAlias;
+			import info.airapps.actionscripts.ConnectionStatus;
+
+			// embed images and declare persistent image classes
+			[Embed(source="assets/images/smile.png")]
+			[Bindable] public var imgConnected:Class;
+			[Embed(source="assets/images/frown.png")]
+			[Bindable] public var imgDisconnected:Class;
+			[Embed(source="assets/images/zoom.png")]
+			[Bindable] public var imgGetFlight:Class;
+			[Embed(source="assets/images/zoom_off.png")]
+			[Bindable] public var imgGetFlightOff:Class;
+			[Embed(source="assets/images/zoomarchive.png")]
+			[Bindable] public var imgGetArchFlight:Class;
+			[Embed(source="assets/images/zoomarchive_off.png")]
+			[Bindable] public var imgGetArchFlightOff:Class;
+			[Embed(source="assets/images/world_link.png")]
+			[Bindable] public var imgSrcCode:Class;
+			[Embed(source="assets/images/world_link_off.png")]
+			[Bindable] public var imgSrcCodeOff:Class;
+			[Bindable] public var txtFlightInfo:String = "";
+			[Bindable] public var arcFlights:ArrayCollection = new ArrayCollection();
+			[Bindable] public var arcFlightDetails:ArrayCollection = new ArrayCollection();
+			[Bindable] public var aryFlightDetails:Array = new Array();
+			[Bindable] public var blnConnected:Boolean = true;
+			[Bindable] private var blnDBLClick:Boolean = false;
+			[Bindable] private var winwidth:Number = Capabilities.screenResolutionX/1.4;
+			[Bindable] private var winheight:Number = Capabilities.screenResolutionY/1.4;
+			[Bindable] private var connection:ConnectionStatus = new ConnectionStatus();
+			private var vResult:ValidationResultEvent;
+			private var msg:String = "";
+			private var count:Number = 0;
+			private var msgprefix:String = "";
+			private var ErrorTip:ToolTip;
+			public var newWindow:NativeWindow;
+			private var component:FlightDetails;
+			private var ebook:AIRinFlightContainer;
+			private var archivecomponent:FlightDG;
+			// declare a persistent Timer (6 minutes)
+			private var myTimer:Timer = new Timer(360000, 0);
+			// declare a persistent Timer (0.2 seconds)
+			private var myTimer2:Timer = new Timer(200, 0);
+			public var blnWindowOpen:Boolean = false;
+			private var fFlight:File;
+			
+			private function initApp():void {
+				// add an NETWORK_CHANGE event listener: Listens for the connectivity status
+				Shell.shell.addEventListener(Event.NETWORK_CHANGE, connection.onConnectionChange);
+				// calls the function that checks the connectivity
+				connection.checkConnection();
+				myTimer.addEventListener("timer", onTimer);
+				myTimer2.addEventListener("timer", onTimer2);
+				startTimer2();
+			}
+			
+			private function createWindow():void {
+				newWindow = new NativeWindow(true, new NativeWindowInitOptions());
+				newWindow.title = "AIR (Apollo) in Flight Details: " + tiAirline.text + tiFlightNo.text;
+				newWindow.stage.align = StageAlign.TOP_LEFT;
+				newWindow.stage.scaleMode = StageScaleMode.NO_SCALE;
+				newWindow.width = winwidth;
+				newWindow.height = winheight;
+				component = new FlightDetails();
+				hiddenVBox.addChild(component);
+				hiddenVBox.removeChild(component);
+				newWindow.stage.addChild(component);
+				blnWindowOpen = true;
+			}
+
+			public function getArchFlightDetails(flgtnum:String, flgtid:int):void {
+				wsFlight.getArchivedFlightDetails(flgtnum, int(flgtid));
+			}
+			
+	        private function getFlightDetailsHandler(event:ResultEvent):void {
+				txtFlightInfo = wsFlight.getFlightDetails.lastResult as String;
+				//Alert.show(ObjectUtil.toString(txtFlightInfo));
+				setFlightToFS();
+				lblProgress.text = "";
+				lblProgress.visible = false;
+				myTimer.start();
+				if (!blnWindowOpen) {
+					createWindow();
+				} else {
+					component.fillFlightInfo();
+				}
+	        }
+
+			private function getArchivedFlightsHandler(event:ResultEvent):void {
+				arcFlights.source = ArrayUtil.toArray(wsFlight.getArchivedFlights.lastResult);
+				//Alert.show(ObjectUtil.toString(arcFlights));
+				newWindow = new NativeWindow(true, new NativeWindowInitOptions());
+				newWindow.title = "AIR (Apollo) in Flight Archives: " + tiAirline.text + tiFlightNo.text;
+				newWindow.stage.align = StageAlign.TOP_LEFT;
+				newWindow.stage.scaleMode = StageScaleMode.NO_SCALE;
+				newWindow.width = 440;
+				newWindow.height = 470;
+				archivecomponent = new FlightDG();
+				hiddenVBox.addChild(archivecomponent);
+				hiddenVBox.removeChild(archivecomponent);
+				newWindow.stage.addChild(archivecomponent);
+			}
+				
+			private function getArchivedFlightDetailsHandler(event:ResultEvent):void {
+				arcFlightDetails.source = ArrayUtil.toArray(wsFlight.getArchivedFlightDetails.lastResult);
+				//Alert.show(ObjectUtil.toString(arcFlightDetails.list.getItemAt(0).list.getItemAt(0).FLIGHTDETAILS));
+				txtFlightInfo = arcFlightDetails.list.getItemAt(0).list.getItemAt(0).FLIGHTDETAILS;
+				lblProgress.text = "";
+				lblProgress.visible = false;
+				if (txtFlightInfo!='') {
+					createWindow();
+				}
+			}
+			        
+	        private function wsfaultHandler(event:FaultEvent):void {
+	            // dump error message
+	            //Alert.show(ObjectUtil.toString(event.fault));
+	            Alert.show("GoFly couldn't find Flight " + tiAirline.text + tiFlightNo.text + " just yet.", "Flight Details Unavailable");
+				// parse the flight
+				var flight:String = tiAirline.text + tiFlightNo.text;
+				// call the flight WebService
+				wsFlight.getFlightDetails(flight);
+				lblProgress.text = "Retrieving flight data...";
+				lblProgress.visible = true;
+	        }
+
+	        private function wsdefaultHandler(event:FaultEvent):void {
+	            // dump error message
+	            Alert.show(ObjectUtil.toString(event.fault));
+	        }
+
+			private function onTimer(event:TimerEvent):void {
+				// parse the flight
+				var flight:String = tiAirline.text + tiFlightNo.text;
+				// call the flight WebService
+				wsFlight.getFlightDetails(flight);
+				lblProgress.text = "Retrieving flight data...";
+				lblProgress.visible = true;
+				myTimer.stop();
+			}
+
+	        private function validateForm(type:String):void {
+				msg = "";
+				count = 0;
+	            // Validate the Airline. 
+	            vResult = vAirline.validate();
+	            // If the Airline is invalid.
+	            if (vResult.type==ValidationResultEvent.INVALID) {
+	                msg = "You must enter an Airline symbol (e.g. FFT = Frontier Airlines).\n\n";
+	                count++;
+		        }
+	            // Validate the FlightNo. 
+	            vResult = vFlightNo.validate();
+	            // If the FlightNo is invalid.
+	            if (vResult.type==ValidationResultEvent.INVALID) {
+	                msg = msg + "You must enter a Flight Number (e.g. 663).\n\n";
+	                count++;
+		        }
+				if (msg!="") {
+					if (count>1) {
+						msgprefix = "You must correct the following issues:";
+					}
+					mx.controls.Alert.show(msgprefix + "\n\n" + msg, "Required Fields Alert...");
+					return;
+				} else {
+					// parse the flight
+					var flight:String = tiAirline.text + tiFlightNo.text;
+					// call the flight WebService
+					if (connection.iStatus!=0) {
+						if (type=='live') {
+							wsFlight.getFlightDetails(flight);
+						} else {
+							wsFlight.getArchivedFlights(flight);
+						}
+					} else {
+						getFlightFromFS();
+					}
+					lblProgress.text = "Retrieving flight data...";
+					lblProgress.visible = true;
+				}
+			}
+			
+			private function goThere(sURL:String):void {
+	   	        var u:URLRequest = new URLRequest(sURL);
+		        navigateToURL(u,"_blank");
+			}
+
+			private function getPDF():void {
+				newWindow = new NativeWindow(true, new NativeWindowInitOptions());
+				newWindow.title = "AIR (Apollo) in Flight eBook";
+				newWindow.stage.align = StageAlign.TOP_LEFT;
+				newWindow.stage.scaleMode = StageScaleMode.NO_SCALE;
+				newWindow.width = winwidth;
+				newWindow.height = winheight;
+				ebook = new AIRinFlightContainer();
+				hiddenVBox.addChild(ebook);
+				hiddenVBox.removeChild(ebook);
+				newWindow.stage.addChild(ebook);
+			}
+
+			private function startTimer2():void {
+				// start the 0.2 second timer
+				myTimer2.start();
+			}
+
+			private function onTimer2(event:TimerEvent):void {
+	            // call function to see if image/buttons should change
+	            monitorConnectionStatus();
+			}
+
+			private function monitorConnectionStatus():void {
+				// conditional to check the status
+				if (connection.iStatus == 0) {
+					// change the image, imgStatus, to the frown.png
+					imgStatus.source = connection.imgDisconnected;
+					// change the toolTip for the image, imgStatus
+					imgStatus.toolTip = "Offline and not connected to the Internet...";
+					// toggle buttons' availability to unavailable
+					blnConnected = false;
+					btnHistory.enabled = false;
+					btnViewSource.enabled = false;
+				} else {
+					// change the image, imgStatus, to the smile.png
+					imgStatus.source = connection.imgConnected;
+					// change the toolTip for the image, imgStatus
+					imgStatus.toolTip = "Online and connected to the Internet...";
+					// toggle buttons' availability to available
+					blnConnected = true;
+					btnHistory.enabled = true;
+					btnViewSource.enabled = true;
+				}
+			}
+
+			private function setFlightToFS():void {
+				// register a Dictionary
+				registerClassAlias("flash.utils.Dictionary", Dictionary);
+				// build the ActionScript Object of Data
+				var oFlight:Object = new Object();
+				oFlight.flightnum = tiAirline.text + tiFlightNo.text;
+				oFlight.flightdetails = txtFlightInfo;
+				oFlight.flighttimestamp = date_updated();
+				// create a file instance that points to the storage location
+				fFlight = File.applicationStorageDirectory.resolve("Flight.db");
+				var FlightDict:Dictionary = new Dictionary();
+				FlightDict["flightnum"] = oFlight.flightnum;
+				FlightDict["flightdetails"] = oFlight.flightdetails;
+				FlightDict["flighttimestamp"] = oFlight.flighttimestamp;
+				var fs:FileStream = new FileStream();
+				fs.open(fFlight, FileMode.WRITE);
+				fs.writeObject(FlightDict);
+				fs.close();
+			}
+			
+			private function getFlightFromFS():void {
+				var FlightDict:Dictionary;
+				if (fFlight.exists) {
+					var fs:FileStream = new FileStream();
+					fs.open(fFlight, FileMode.READ);
+					FlightDict = (fs.readObject() as Dictionary);
+					fs.close();
+					txtFlightInfo = FlightDict.flightdetails;
+					if (txtFlightInfo!='') {
+						createWindow();
+					}
+				} else {
+					mx.controls.Alert.show("Error deserializing data", "I/O Error");
+				}
+			}	
+
+			private function date_updated():String {
+				var date:Date = new Date;
+				var current:String = datetimeformatter.format(date.getMonth() + 1 + '/' + date.getDate() + '/' + date.getFullYear())  + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+				//Alert.show(current);
+				return current;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Style>
+		Panel {
+		   borderColor: #666666;
+		   borderAlpha: 0.4;
+		   roundedBottomCorners: true;
+		   headerHeight: 22;
+		   backgroundAlpha: 1;
+		   backgroundColor: #000000;
+		   titleStyleName: "mypanelTitle";
+		}
+		
+		.mypanelTitle {
+		   color: #ff3300;
+		   textAlign: left;
+		   fontSize: 14;
+		   fontWeight: bold;
+		   fontStyle: italic;
+		   paddingLeft: 20;
+		}
+		
+	   ToolTip { 
+	   		font-family: "Verdanna"; font-size: 14; font-weight: "normal"; background-color: "0x003366"; color: "0xFFFFFF"; 
+	   	}
+	   	
+	   .errorTip { 
+	   		font-family: "Verdanna"; font-size: 12; font-weight: "normal"; background-color: "0xFFFF00"; color: "0xFFFFFF"; 
+	   	}
+	</mx:Style>
+	
+	<mx:DateFormatter id="datetimeformatter" formatString="YYYY/MM/DD J:NN"/>
+
+	<!-- Define validators. -->
+	<mx:StringValidator id="vAirline" source="{tiAirline}" property="text" requiredFieldError="Please enter an Airline symbol (e.g. FFT = Frontier Airlines)."/>
+	<mx:StringValidator id="vFlightNo" source="{tiFlightNo}" property="text" requiredFieldError="Please enter a Flight Number (e.g. 663)."/>
+
+	<mx:Panel id="pnlGoFly" title="AIR (Apollo) In Flight Info">
+		<mx:Form id="frmFlight" width="486" height="130" backgroundColor="#000040">
+			<mx:FormItem required="true">
+				<mx:HBox width="100%">
+					<mx:Spacer width="41"/>
+					<mx:Label text="Airline:" fontFamily="Verdana" fontSize="12" color="#ffffff" textAlign="right"/>
+					<mx:TextInput id="tiAirline" width="80" toolTip="Please enter an Airline symbol (e.g. FFT = Frontier Airlines)..."/>
+				</mx:HBox>
+			</mx:FormItem>
+			<mx:FormItem required="true">
+				<mx:HBox width="100%">
+					<mx:Label text="Flight Number:" fontFamily="Verdana" fontSize="12" color="#ffffff" textAlign="right"/>
+					<mx:TextInput id="tiFlightNo" width="80" toolTip="Please enter a Flight Number (e.g. 663)..."/>
+				</mx:HBox>
+			</mx:FormItem>
+			<mx:Label id="lblProgress" color="#ff3300" fontStyle="italic" fontSize="11" fontWeight="bold"/>
+			<mx:VBox id="hiddenVBox" visible="false"/>
+		</mx:Form>
+    	<mx:ControlBar>
+			<mx:HBox width="100%">
+				<mx:Button id="btnSearch" label="Search" icon="{imgGetFlight}" click="validateForm('live')" fontFamily="Verdanna" fontSize="14" fontWeight="bold" toolTip="{(blnConnected)?'Click to search for this flight in realtime...':'Offline mode - Archive search is still active...'}"/>
+				<mx:Button id="btnHistory" label="Archive" icon="{(connection.iStatus!=0)?imgGetArchFlight:imgGetArchFlightOff}" click="validateForm('archive')" fontFamily="Verdanna" fontSize="14" fontWeight="bold" toolTip="{(blnConnected)?'Click to search the archives for this flight...':'Offline mode - button is currently inactive...'}"/>
+				<mx:Button id="btnViewSource" label="Source" icon="{(connection.iStatus!=0)?imgSrcCode:imgSrcCodeOff}" click="goThere('http://labs.insideflex.com/airtraining/gofly/bin/srcview/index.html')" fontFamily="Verdanna" fontSize="14" fontWeight="bold" toolTip="{(blnConnected)?'Click to view the source code...':'Offline mode - button is currently inactive...'}"/>
+				<mx:Button id="btnViewPDF" label="PDF" icon="@Embed('assets/images/acrobat.png')" click="getPDF()" fontFamily="Verdanna" fontSize="14" fontWeight="bold" toolTip="Click to preview the 'Apollo in Flight' book that demonstrates creating this Go Fly example..."/>
+				<mx:Button id="btnExit" label="Exit" icon="@Embed('assets/images/door_out.png')" click="window.close()" fontFamily="Verdanna" fontSize="14" fontWeight="bold" toolTip="Click to exit this application..."/>
+				<mx:Spacer width="10"/>
+				<mx:Image id="imgStatus" width="24" height="24"/>
+			</mx:HBox>
+    	</mx:ControlBar>
+	</mx:Panel>
+	
+</mx:WindowedApplication>

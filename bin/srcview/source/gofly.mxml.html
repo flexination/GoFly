@@ -1,0 +1,379 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>gofly.mxml</title>
+<link rel="stylesheet" type="text/css" href="../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="mxmlCdata">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="mxmlComponent">&lt;mx:WindowedApplication</span> xmlns:mx=&quot;<span class="mxmlString">http://www.adobe.com/2006/mxml</span>&quot; pageTitle=&quot;<span class="mxmlString">AIR (Apollo) In Flight</span>&quot; creationComplete=&quot;initApp<span class="asBracket">()</span>&quot; layout=&quot;<span class="mxmlString">vertical</span>&quot; backgroundColor=&quot;<span class="mxmlString">#000040</span>&quot; width=&quot;<span class="mxmlString">558</span>&quot; height=&quot;<span class="mxmlString">275</span>&quot; viewSourceURL=&quot;<span class="mxmlString">http://labs.insideflex.com/airtraining/gofly/bin/srcview/index.html</span>&quot;<span class="mxmlComponent">&gt;</span>
+    <span class="mxmlComponent">&lt;mx:WebService</span> id=&quot;<span class="mxmlString">wsFlight</span>&quot; wsdl=&quot;<span class="mxmlString">http://labs.insideflex.com/airtraining/gofly/info/airapps/cfcs/flight.cfc?wsdl</span>&quot; showBusyCursor=&quot;<span class="mxmlString">true</span>&quot;<span class="mxmlComponent">&gt;</span>
+        <span class="mxmlComponent">&lt;mx:operation</span> name=&quot;<span class="mxmlString">getFlightDetails</span>&quot; result=&quot;getFlightDetailsHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot; fault=&quot;wsfaultHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:operation</span> name=&quot;<span class="mxmlString">getArchivedFlights</span>&quot; result=&quot;getArchivedFlightsHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot; fault=&quot;wsdefaultHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:operation</span> name=&quot;<span class="mxmlString">getArchivedFlightDetails</span>&quot; result=&quot;getArchivedFlightDetailsHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot; fault=&quot;wsdefaultHandler<span class="asBracket">(</span>event<span class="asBracket">)</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;/mx:WebService&gt;</span>
+    <span class="mxmlTag">&lt;mx:Script&gt;</span>
+        <span class="asOperator">&lt;!</span><span class="asBracket">[</span>CDATA<span class="asBracket">[</span>
+            <span class="asReserved">import</span> mx.collections.ArrayCollection;
+            <span class="asReserved">import</span> flash.events.NetStatusEvent;
+            <span class="asReserved">import</span> mx.controls.HTML;
+            <span class="asReserved">import</span> mx.rpc.events.ResultEvent;
+            <span class="asReserved">import</span> mx.rpc.events.FaultEvent;
+            <span class="asReserved">import</span> mx.controls.Alert;
+            <span class="asReserved">import</span> mx.utils.ObjectUtil;
+            <span class="asReserved">import</span> mx.utils.ArrayUtil;
+            <span class="asReserved">import</span> mx.containers.TitleWindow;
+            <span class="asReserved">import</span> mx.events.ValidationResultEvent;
+            <span class="asReserved">import</span> mx.controls.ToolTip;
+            <span class="asReserved">import</span> mx.managers.ToolTipManager;
+            <span class="asReserved">import</span> mx.managers.CursorManager;
+            <span class="asReserved">import</span> flash.filesystem.FileMode;
+            <span class="asReserved">import</span> flash.filesystem.FileStream;
+            <span class="asReserved">import</span> flash.filesystem.File;
+            <span class="asReserved">import</span> flash.net.registerClassAlias;
+            <span class="asReserved">import</span> info.airapps.actionscripts.ConnectionStatus;
+
+            <span class="asComment">// embed images and declare persistent image classes
+</span>            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/smile.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgConnected<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/frown.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgDisconnected<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/zoom.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgGetFlight<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/zoom_off.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgGetFlightOff<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/zoomarchive.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgGetArchFlight<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/zoomarchive_off.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgGetArchFlightOff<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/world_link.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgSrcCode<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/world_link_off.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgSrcCodeOff<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> txtFlightInfo<span class="asOperator">:</span>String <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> arcFlights<span class="asOperator">:</span>ArrayCollection <span class="asOperator">=</span> <span class="asReserved">new</span> ArrayCollection<span class="asBracket">()</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> arcFlightDetails<span class="asOperator">:</span>ArrayCollection <span class="asOperator">=</span> <span class="asReserved">new</span> ArrayCollection<span class="asBracket">()</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> aryFlightDetails<span class="asOperator">:</span>Array <span class="asOperator">=</span> <span class="asReserved">new</span> Array<span class="asBracket">()</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> blnConnected<span class="asOperator">:</span>Boolean <span class="asOperator">=</span> <span class="asReserved">true</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> blnDBLClick<span class="asOperator">:</span>Boolean <span class="asOperator">=</span> <span class="asReserved">false</span>;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winwidth<span class="asOperator">:</span>Number <span class="asOperator">=</span> Capabilities.screenResolutionX<span class="asOperator">/</span>1.4;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winheight<span class="asOperator">:</span>Number <span class="asOperator">=</span> Capabilities.screenResolutionY<span class="asOperator">/</span>1.4;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> connection<span class="asOperator">:</span>ConnectionStatus <span class="asOperator">=</span> <span class="asReserved">new</span> ConnectionStatus<span class="asBracket">()</span>;
+            <span class="asReserved">private</span> <span class="asVar">var</span> vResult<span class="asOperator">:</span>ValidationResultEvent;
+            <span class="asReserved">private</span> <span class="asVar">var</span> msg<span class="asOperator">:</span>String <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+            <span class="asReserved">private</span> <span class="asVar">var</span> count<span class="asOperator">:</span>Number <span class="asOperator">=</span> 0;
+            <span class="asReserved">private</span> <span class="asVar">var</span> msgprefix<span class="asOperator">:</span>String <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+            <span class="asReserved">private</span> <span class="asVar">var</span> ErrorTip<span class="asOperator">:</span>ToolTip;
+            <span class="asReserved">public</span> <span class="asVar">var</span> newWindow<span class="asOperator">:</span>NativeWindow;
+            <span class="asReserved">private</span> <span class="asVar">var</span> component<span class="asOperator">:</span>FlightDetails;
+            <span class="asReserved">private</span> <span class="asVar">var</span> ebook<span class="asOperator">:</span>AIRinFlightContainer;
+            <span class="asReserved">private</span> <span class="asVar">var</span> archivecomponent<span class="asOperator">:</span>FlightDG;
+            <span class="asComment">// declare a persistent Timer (6 minutes)
+</span>            <span class="asReserved">private</span> <span class="asVar">var</span> myTimer<span class="asOperator">:</span>Timer <span class="asOperator">=</span> <span class="asReserved">new</span> Timer<span class="asBracket">(</span>360000, 0<span class="asBracket">)</span>;
+            <span class="asComment">// declare a persistent Timer (0.2 seconds)
+</span>            <span class="asReserved">private</span> <span class="asVar">var</span> myTimer2<span class="asOperator">:</span>Timer <span class="asOperator">=</span> <span class="asReserved">new</span> Timer<span class="asBracket">(</span>200, 0<span class="asBracket">)</span>;
+            <span class="asReserved">public</span> <span class="asVar">var</span> blnWindowOpen<span class="asOperator">:</span>Boolean <span class="asOperator">=</span> <span class="asReserved">false</span>;
+            <span class="asReserved">private</span> <span class="asVar">var</span> fFlight<span class="asOperator">:</span>File;
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> initApp<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// add an NETWORK_CHANGE event listener: Listens for the connectivity status
+</span>                Shell.shell.addEventListener<span class="asBracket">(</span>Event.NETWORK_CHANGE, connection.onConnectionChange<span class="asBracket">)</span>;
+                <span class="asComment">// calls the function that checks the connectivity
+</span>                connection.checkConnection<span class="asBracket">()</span>;
+                myTimer.addEventListener<span class="asBracket">(</span><span class="asString">&quot;timer&quot;</span>, onTimer<span class="asBracket">)</span>;
+                myTimer2.addEventListener<span class="asBracket">(</span><span class="asString">&quot;timer&quot;</span>, onTimer2<span class="asBracket">)</span>;
+                startTimer2<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> createWindow<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                newWindow <span class="asOperator">=</span> <span class="asReserved">new</span> NativeWindow<span class="asBracket">(</span><span class="asReserved">true</span>, <span class="asReserved">new</span> NativeWindowInitOptions<span class="asBracket">())</span>;
+                newWindow.title <span class="asOperator">=</span> <span class="asString">&quot;AIR (Apollo) in Flight Details: &quot;</span> <span class="asOperator">+</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                newWindow.stage.align <span class="asOperator">=</span> StageAlign.TOP_LEFT;
+                newWindow.stage.scaleMode <span class="asOperator">=</span> StageScaleMode.NO_SCALE;
+                newWindow.width <span class="asOperator">=</span> winwidth;
+                newWindow.height <span class="asOperator">=</span> winheight;
+                component <span class="asOperator">=</span> <span class="asReserved">new</span> FlightDetails<span class="asBracket">()</span>;
+                hiddenVBox.addChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                hiddenVBox.removeChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                newWindow.stage.addChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                blnWindowOpen <span class="asOperator">=</span> <span class="asReserved">true</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">public</span> <span class="asFunction">function</span> getArchFlightDetails<span class="asBracket">(</span>flgtnum<span class="asOperator">:</span>String, flgtid<span class="asOperator">:</span>int<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                wsFlight.getArchivedFlightDetails<span class="asBracket">(</span>flgtnum, int<span class="asBracket">(</span>flgtid<span class="asBracket">))</span>;
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getFlightDetailsHandler<span class="asBracket">(</span>event<span class="asOperator">:</span>ResultEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                txtFlightInfo <span class="asOperator">=</span> wsFlight.getFlightDetails.lastResult <span class="asReserved">as</span> String;
+                <span class="asComment">//Alert.show(ObjectUtil.toString(txtFlightInfo));
+</span>                setFlightToFS<span class="asBracket">()</span>;
+                lblProgress.text <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+                lblProgress.visible <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                myTimer.start<span class="asBracket">()</span>;
+                <span class="asReserved">if</span> <span class="asBracket">(</span><span class="asOperator">!</span>blnWindowOpen<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    createWindow<span class="asBracket">()</span>;
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    component.fillFlightInfo<span class="asBracket">()</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getArchivedFlightsHandler<span class="asBracket">(</span>event<span class="asOperator">:</span>ResultEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                arcFlights.source <span class="asOperator">=</span> ArrayUtil.toArray<span class="asBracket">(</span>wsFlight.getArchivedFlights.lastResult<span class="asBracket">)</span>;
+                <span class="asComment">//Alert.show(ObjectUtil.toString(arcFlights));
+</span>                newWindow <span class="asOperator">=</span> <span class="asReserved">new</span> NativeWindow<span class="asBracket">(</span><span class="asReserved">true</span>, <span class="asReserved">new</span> NativeWindowInitOptions<span class="asBracket">())</span>;
+                newWindow.title <span class="asOperator">=</span> <span class="asString">&quot;AIR (Apollo) in Flight Archives: &quot;</span> <span class="asOperator">+</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                newWindow.stage.align <span class="asOperator">=</span> StageAlign.TOP_LEFT;
+                newWindow.stage.scaleMode <span class="asOperator">=</span> StageScaleMode.NO_SCALE;
+                newWindow.width <span class="asOperator">=</span> 440;
+                newWindow.height <span class="asOperator">=</span> 470;
+                archivecomponent <span class="asOperator">=</span> <span class="asReserved">new</span> FlightDG<span class="asBracket">()</span>;
+                hiddenVBox.addChild<span class="asBracket">(</span>archivecomponent<span class="asBracket">)</span>;
+                hiddenVBox.removeChild<span class="asBracket">(</span>archivecomponent<span class="asBracket">)</span>;
+                newWindow.stage.addChild<span class="asBracket">(</span>archivecomponent<span class="asBracket">)</span>;
+            <span class="asBracket">}</span>
+                
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getArchivedFlightDetailsHandler<span class="asBracket">(</span>event<span class="asOperator">:</span>ResultEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                arcFlightDetails.source <span class="asOperator">=</span> ArrayUtil.toArray<span class="asBracket">(</span>wsFlight.getArchivedFlightDetails.lastResult<span class="asBracket">)</span>;
+                <span class="asComment">//Alert.show(ObjectUtil.toString(arcFlightDetails.list.getItemAt(0).list.getItemAt(0).FLIGHTDETAILS));
+</span>                txtFlightInfo <span class="asOperator">=</span> arcFlightDetails.list.getItemAt<span class="asBracket">(</span>0<span class="asBracket">)</span>.list.getItemAt<span class="asBracket">(</span>0<span class="asBracket">)</span>.FLIGHTDETAILS;
+                lblProgress.text <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+                lblProgress.visible <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                <span class="asReserved">if</span> <span class="asBracket">(</span>txtFlightInfo<span class="asOperator">!=</span><span class="asString">&apos;&apos;</span><span class="asBracket">)</span> <span class="asBracket">{</span>
+                    createWindow<span class="asBracket">()</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>
+                    
+            <span class="asReserved">private</span> <span class="asFunction">function</span> wsfaultHandler<span class="asBracket">(</span>event<span class="asOperator">:</span>FaultEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// dump error message
+</span>                <span class="asComment">//Alert.show(ObjectUtil.toString(event.fault));
+</span>                Alert.show<span class="asBracket">(</span><span class="asString">&quot;GoFly couldn&apos;t find Flight &quot;</span> <span class="asOperator">+</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text <span class="asOperator">+</span> <span class="asString">&quot; just yet.&quot;</span>, <span class="asString">&quot;Flight Details Unavailable&quot;</span><span class="asBracket">)</span>;
+                <span class="asComment">// parse the flight
+</span>                <span class="asVar">var</span> flight<span class="asOperator">:</span>String <span class="asOperator">=</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                <span class="asComment">// call the flight WebService
+</span>                wsFlight.getFlightDetails<span class="asBracket">(</span>flight<span class="asBracket">)</span>;
+                lblProgress.text <span class="asOperator">=</span> <span class="asString">&quot;Retrieving flight data...&quot;</span>;
+                lblProgress.visible <span class="asOperator">=</span> <span class="asReserved">true</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> wsdefaultHandler<span class="asBracket">(</span>event<span class="asOperator">:</span>FaultEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// dump error message
+</span>                Alert.show<span class="asBracket">(</span>ObjectUtil.toString<span class="asBracket">(</span>event.fault<span class="asBracket">))</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> onTimer<span class="asBracket">(</span>event<span class="asOperator">:</span>TimerEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// parse the flight
+</span>                <span class="asVar">var</span> flight<span class="asOperator">:</span>String <span class="asOperator">=</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                <span class="asComment">// call the flight WebService
+</span>                wsFlight.getFlightDetails<span class="asBracket">(</span>flight<span class="asBracket">)</span>;
+                lblProgress.text <span class="asOperator">=</span> <span class="asString">&quot;Retrieving flight data...&quot;</span>;
+                lblProgress.visible <span class="asOperator">=</span> <span class="asReserved">true</span>;
+                myTimer.stop<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> validateForm<span class="asBracket">(</span>type<span class="asOperator">:</span>String<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                msg <span class="asOperator">=</span> <span class="asString">&quot;&quot;</span>;
+                count <span class="asOperator">=</span> 0;
+                <span class="asComment">// Validate the Airline. 
+</span>                vResult <span class="asOperator">=</span> vAirline.validate<span class="asBracket">()</span>;
+                <span class="asComment">// If the Airline is invalid.
+</span>                <span class="asReserved">if</span> <span class="asBracket">(</span>vResult.type<span class="asOperator">==</span>ValidationResultEvent.INVALID<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    msg <span class="asOperator">=</span> <span class="asString">&quot;You must enter an Airline symbol (e.g. FFT = Frontier Airlines).\n\n&quot;</span>;
+                    count<span class="asOperator">++</span>;
+                <span class="asBracket">}</span>
+                <span class="asComment">// Validate the FlightNo. 
+</span>                vResult <span class="asOperator">=</span> vFlightNo.validate<span class="asBracket">()</span>;
+                <span class="asComment">// If the FlightNo is invalid.
+</span>                <span class="asReserved">if</span> <span class="asBracket">(</span>vResult.type<span class="asOperator">==</span>ValidationResultEvent.INVALID<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    msg <span class="asOperator">=</span> msg <span class="asOperator">+</span> <span class="asString">&quot;You must enter a Flight Number (e.g. 663).\n\n&quot;</span>;
+                    count<span class="asOperator">++</span>;
+                <span class="asBracket">}</span>
+                <span class="asReserved">if</span> <span class="asBracket">(</span>msg<span class="asOperator">!=</span><span class="asString">&quot;&quot;</span><span class="asBracket">)</span> <span class="asBracket">{</span>
+                    <span class="asReserved">if</span> <span class="asBracket">(</span>count<span class="asOperator">&gt;</span>1<span class="asBracket">)</span> <span class="asBracket">{</span>
+                        msgprefix <span class="asOperator">=</span> <span class="asString">&quot;You must correct the following issues:&quot;</span>;
+                    <span class="asBracket">}</span>
+                    mx.controls.Alert.show<span class="asBracket">(</span>msgprefix <span class="asOperator">+</span> <span class="asString">&quot;\n\n&quot;</span> <span class="asOperator">+</span> msg, <span class="asString">&quot;Required Fields Alert...&quot;</span><span class="asBracket">)</span>;
+                    <span class="asReserved">return</span>;
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    <span class="asComment">// parse the flight
+</span>                    <span class="asVar">var</span> flight<span class="asOperator">:</span>String <span class="asOperator">=</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                    <span class="asComment">// call the flight WebService
+</span>                    <span class="asReserved">if</span> <span class="asBracket">(</span>connection.iStatus<span class="asOperator">!=</span>0<span class="asBracket">)</span> <span class="asBracket">{</span>
+                        <span class="asReserved">if</span> <span class="asBracket">(</span>type<span class="asOperator">==</span><span class="asString">&apos;live&apos;</span><span class="asBracket">)</span> <span class="asBracket">{</span>
+                            wsFlight.getFlightDetails<span class="asBracket">(</span>flight<span class="asBracket">)</span>;
+                        <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                            wsFlight.getArchivedFlights<span class="asBracket">(</span>flight<span class="asBracket">)</span>;
+                        <span class="asBracket">}</span>
+                    <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                        getFlightFromFS<span class="asBracket">()</span>;
+                    <span class="asBracket">}</span>
+                    lblProgress.text <span class="asOperator">=</span> <span class="asString">&quot;Retrieving flight data...&quot;</span>;
+                    lblProgress.visible <span class="asOperator">=</span> <span class="asReserved">true</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> goThere<span class="asBracket">(</span>sURL<span class="asOperator">:</span>String<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                   <span class="asVar">var</span> u<span class="asOperator">:</span>URLRequest <span class="asOperator">=</span> <span class="asReserved">new</span> URLRequest<span class="asBracket">(</span>sURL<span class="asBracket">)</span>;
+                navigateToURL<span class="asBracket">(</span>u,<span class="asString">&quot;_blank&quot;</span><span class="asBracket">)</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getPDF<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                newWindow <span class="asOperator">=</span> <span class="asReserved">new</span> NativeWindow<span class="asBracket">(</span><span class="asReserved">true</span>, <span class="asReserved">new</span> NativeWindowInitOptions<span class="asBracket">())</span>;
+                newWindow.title <span class="asOperator">=</span> <span class="asString">&quot;AIR (Apollo) in Flight eBook&quot;</span>;
+                newWindow.stage.align <span class="asOperator">=</span> StageAlign.TOP_LEFT;
+                newWindow.stage.scaleMode <span class="asOperator">=</span> StageScaleMode.NO_SCALE;
+                newWindow.width <span class="asOperator">=</span> winwidth;
+                newWindow.height <span class="asOperator">=</span> winheight;
+                ebook <span class="asOperator">=</span> <span class="asReserved">new</span> AIRinFlightContainer<span class="asBracket">()</span>;
+                hiddenVBox.addChild<span class="asBracket">(</span>ebook<span class="asBracket">)</span>;
+                hiddenVBox.removeChild<span class="asBracket">(</span>ebook<span class="asBracket">)</span>;
+                newWindow.stage.addChild<span class="asBracket">(</span>ebook<span class="asBracket">)</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> startTimer2<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// start the 0.2 second timer
+</span>                myTimer2.start<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> onTimer2<span class="asBracket">(</span>event<span class="asOperator">:</span>TimerEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// call function to see if image/buttons should change
+</span>                monitorConnectionStatus<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> monitorConnectionStatus<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// conditional to check the status
+</span>                <span class="asReserved">if</span> <span class="asBracket">(</span>connection.iStatus <span class="asOperator">==</span> 0<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    <span class="asComment">// change the image, imgStatus, to the frown.png
+</span>                    imgStatus.source <span class="asOperator">=</span> connection.imgDisconnected;
+                    <span class="asComment">// change the toolTip for the image, imgStatus
+</span>                    imgStatus.toolTip <span class="asOperator">=</span> <span class="asString">&quot;Offline and not connected to the Internet...&quot;</span>;
+                    <span class="asComment">// toggle buttons&apos; availability to unavailable
+</span>                    blnConnected <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                    btnHistory.enabled <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                    btnViewSource.enabled <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    <span class="asComment">// change the image, imgStatus, to the smile.png
+</span>                    imgStatus.source <span class="asOperator">=</span> connection.imgConnected;
+                    <span class="asComment">// change the toolTip for the image, imgStatus
+</span>                    imgStatus.toolTip <span class="asOperator">=</span> <span class="asString">&quot;Online and connected to the Internet...&quot;</span>;
+                    <span class="asComment">// toggle buttons&apos; availability to available
+</span>                    blnConnected <span class="asOperator">=</span> <span class="asReserved">true</span>;
+                    btnHistory.enabled <span class="asOperator">=</span> <span class="asReserved">true</span>;
+                    btnViewSource.enabled <span class="asOperator">=</span> <span class="asReserved">true</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> setFlightToFS<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asComment">// register a Dictionary
+</span>                registerClassAlias<span class="asBracket">(</span><span class="asString">&quot;flash.utils.Dictionary&quot;</span>, Dictionary<span class="asBracket">)</span>;
+                <span class="asComment">// build the ActionScript Object of Data
+</span>                <span class="asVar">var</span> oFlight<span class="asOperator">:</span>Object <span class="asOperator">=</span> <span class="asReserved">new</span> Object<span class="asBracket">()</span>;
+                oFlight.flightnum <span class="asOperator">=</span> tiAirline.text <span class="asOperator">+</span> tiFlightNo.text;
+                oFlight.flightdetails <span class="asOperator">=</span> txtFlightInfo;
+                oFlight.flighttimestamp <span class="asOperator">=</span> date_updated<span class="asBracket">()</span>;
+                <span class="asComment">// create a file instance that points to the storage location
+</span>                fFlight <span class="asOperator">=</span> File.applicationStorageDirectory.resolve<span class="asBracket">(</span><span class="asString">&quot;Flight.db&quot;</span><span class="asBracket">)</span>;
+                <span class="asVar">var</span> FlightDict<span class="asOperator">:</span>Dictionary <span class="asOperator">=</span> <span class="asReserved">new</span> Dictionary<span class="asBracket">()</span>;
+                FlightDict<span class="asBracket">[</span><span class="asString">&quot;flightnum&quot;</span><span class="asBracket">]</span> <span class="asOperator">=</span> oFlight.flightnum;
+                FlightDict<span class="asBracket">[</span><span class="asString">&quot;flightdetails&quot;</span><span class="asBracket">]</span> <span class="asOperator">=</span> oFlight.flightdetails;
+                FlightDict<span class="asBracket">[</span><span class="asString">&quot;flighttimestamp&quot;</span><span class="asBracket">]</span> <span class="asOperator">=</span> oFlight.flighttimestamp;
+                <span class="asVar">var</span> fs<span class="asOperator">:</span>FileStream <span class="asOperator">=</span> <span class="asReserved">new</span> FileStream<span class="asBracket">()</span>;
+                fs.open<span class="asBracket">(</span>fFlight, FileMode.WRITE<span class="asBracket">)</span>;
+                fs.writeObject<span class="asBracket">(</span>FlightDict<span class="asBracket">)</span>;
+                fs.close<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getFlightFromFS<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asVar">var</span> FlightDict<span class="asOperator">:</span>Dictionary;
+                <span class="asReserved">if</span> <span class="asBracket">(</span>fFlight.exists<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    <span class="asVar">var</span> fs<span class="asOperator">:</span>FileStream <span class="asOperator">=</span> <span class="asReserved">new</span> FileStream<span class="asBracket">()</span>;
+                    fs.open<span class="asBracket">(</span>fFlight, FileMode.READ<span class="asBracket">)</span>;
+                    FlightDict <span class="asOperator">=</span> <span class="asBracket">(</span>fs.readObject<span class="asBracket">()</span> <span class="asReserved">as</span> Dictionary<span class="asBracket">)</span>;
+                    fs.close<span class="asBracket">()</span>;
+                    txtFlightInfo <span class="asOperator">=</span> FlightDict.flightdetails;
+                    <span class="asReserved">if</span> <span class="asBracket">(</span>txtFlightInfo<span class="asOperator">!=</span><span class="asString">&apos;&apos;</span><span class="asBracket">)</span> <span class="asBracket">{</span>
+                        createWindow<span class="asBracket">()</span>;
+                    <span class="asBracket">}</span>
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    mx.controls.Alert.show<span class="asBracket">(</span><span class="asString">&quot;Error deserializing data&quot;</span>, <span class="asString">&quot;I/O Error&quot;</span><span class="asBracket">)</span>;
+                <span class="asBracket">}</span>
+            <span class="asBracket">}</span>    
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> date_updated<span class="asBracket">()</span><span class="asOperator">:</span>String <span class="asBracket">{</span>
+                <span class="asVar">var</span> date<span class="asOperator">:</span>Date <span class="asOperator">=</span> <span class="asReserved">new</span> Date;
+                <span class="asVar">var</span> current<span class="asOperator">:</span>String <span class="asOperator">=</span> datetimeformatter.format<span class="asBracket">(</span>date.getMonth<span class="asBracket">()</span> <span class="asOperator">+</span> 1 <span class="asOperator">+</span> <span class="asString">&apos;/&apos;</span> <span class="asOperator">+</span> date.getDate<span class="asBracket">()</span> <span class="asOperator">+</span> <span class="asString">&apos;/&apos;</span> <span class="asOperator">+</span> date.getFullYear<span class="asBracket">())</span>  <span class="asOperator">+</span> <span class="asString">&apos; &apos;</span> <span class="asOperator">+</span> date.getHours<span class="asBracket">()</span> <span class="asOperator">+</span> <span class="asString">&apos;:&apos;</span> <span class="asOperator">+</span> date.getMinutes<span class="asBracket">()</span> <span class="asOperator">+</span> <span class="asString">&apos;:&apos;</span> <span class="asOperator">+</span> date.getSeconds<span class="asBracket">()</span>;
+                <span class="asComment">//Alert.show(current);
+</span>                <span class="asReserved">return</span> current;
+            <span class="asBracket">}</span>
+        <span class="asBracket">]]</span><span class="asOperator">&gt;</span>
+    <span class="mxmlTag">&lt;/mx:Script&gt;</span>
+
+    <span class="mxmlTag">&lt;mx:Style&gt;</span>
+        <span class="cssSelector">Panel </span><span class="cssSymbol">{</span>
+           <span class="cssPropName">borderColor</span><span class="cssSymbol">:</span> <span class="cssPropValue">#666666</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">borderAlpha</span><span class="cssSymbol">:</span> <span class="cssPropValue">0.4</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">roundedBottomCorners</span><span class="cssSymbol">:</span> <span class="cssPropValue">true</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">headerHeight</span><span class="cssSymbol">:</span> <span class="cssPropValue">22</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">backgroundAlpha</span><span class="cssSymbol">:</span> <span class="cssPropValue">1</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">backgroundColor</span><span class="cssSymbol">:</span> <span class="cssPropValue">#000000</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">titleStyleName</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;mypanelTitle&quot;</span><span class="cssSymbol">;</span>
+        <span class="cssSymbol">}</span>
+        
+        <span class="cssSelector">.mypanelTitle </span><span class="cssSymbol">{</span>
+           <span class="cssPropName">color</span><span class="cssSymbol">:</span> <span class="cssPropValue">#ff3300</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">textAlign</span><span class="cssSymbol">:</span> <span class="cssPropValue">left</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">fontSize</span><span class="cssSymbol">:</span> <span class="cssPropValue">14</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">fontWeight</span><span class="cssSymbol">:</span> <span class="cssPropValue">bold</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">fontStyle</span><span class="cssSymbol">:</span> <span class="cssPropValue">italic</span><span class="cssSymbol">;</span>
+           <span class="cssPropName">paddingLeft</span><span class="cssSymbol">:</span> <span class="cssPropValue">20</span><span class="cssSymbol">;</span>
+        <span class="cssSymbol">}</span>
+        
+       <span class="cssSelector">ToolTip </span><span class="cssSymbol">{</span> 
+               <span class="cssPropName">font-family</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;Verdanna&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">font-size</span><span class="cssSymbol">:</span> <span class="cssPropValue">14</span><span class="cssSymbol">;</span> <span class="cssPropName">font-weight</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;normal&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">background-color</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;0x003366&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">color</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;0xFFFFFF&quot;</span><span class="cssSymbol">;</span> 
+           <span class="cssSymbol">}</span>
+           
+       <span class="cssSelector">.errorTip </span><span class="cssSymbol">{</span> 
+               <span class="cssPropName">font-family</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;Verdanna&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">font-size</span><span class="cssSymbol">:</span> <span class="cssPropValue">12</span><span class="cssSymbol">;</span> <span class="cssPropName">font-weight</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;normal&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">background-color</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;0xFFFF00&quot;</span><span class="cssSymbol">;</span> <span class="cssPropName">color</span><span class="cssSymbol">:</span> <span class="cssComment">&quot;0xFFFFFF&quot;</span><span class="cssSymbol">;</span> 
+           <span class="cssSymbol">}</span>
+    <span class="mxmlTag">&lt;/mx:Style&gt;</span>
+    
+    <span class="mxmlComponent">&lt;mx:DateFormatter</span> id=&quot;<span class="mxmlString">datetimeformatter</span>&quot; formatString=&quot;<span class="mxmlString">YYYY/MM/DD J:NN</span>&quot;<span class="mxmlComponent">/&gt;</span>
+
+    <span class="mxmlComment">&lt;!--</span><span class="mxmlComment"> Define validators. </span><span class="mxmlComment">--&gt;</span>
+    <span class="mxmlComponent">&lt;mx:StringValidator</span> id=&quot;<span class="mxmlString">vAirline</span>&quot; source=&quot;<span class="mxmlString">{</span>tiAirline<span class="mxmlString">}</span>&quot; property=&quot;<span class="mxmlString">text</span>&quot; requiredFieldError=&quot;<span class="mxmlString">Please enter an Airline symbol (e.g. FFT = Frontier Airlines).</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:StringValidator</span> id=&quot;<span class="mxmlString">vFlightNo</span>&quot; source=&quot;<span class="mxmlString">{</span>tiFlightNo<span class="mxmlString">}</span>&quot; property=&quot;<span class="mxmlString">text</span>&quot; requiredFieldError=&quot;<span class="mxmlString">Please enter a Flight Number (e.g. 663).</span>&quot;<span class="mxmlComponent">/&gt;</span>
+
+    <span class="mxmlComponent">&lt;mx:Panel</span> id=&quot;<span class="mxmlString">pnlGoFly</span>&quot; title=&quot;<span class="mxmlString">AIR (Apollo) In Flight Info</span>&quot;<span class="mxmlComponent">&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Form</span> id=&quot;<span class="mxmlString">frmFlight</span>&quot; width=&quot;<span class="mxmlString">486</span>&quot; height=&quot;<span class="mxmlString">130</span>&quot; backgroundColor=&quot;<span class="mxmlString">#000040</span>&quot;<span class="mxmlComponent">&gt;</span>
+            <span class="mxmlComponent">&lt;mx:FormItem</span> required=&quot;<span class="mxmlString">true</span>&quot;<span class="mxmlComponent">&gt;</span>
+                <span class="mxmlComponent">&lt;mx:HBox</span> width=&quot;<span class="mxmlString">100%</span>&quot;<span class="mxmlComponent">&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:Spacer</span> width=&quot;<span class="mxmlString">41</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:Label</span> text=&quot;<span class="mxmlString">Airline:</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdana</span>&quot; fontSize=&quot;<span class="mxmlString">12</span>&quot; color=&quot;<span class="mxmlString">#ffffff</span>&quot; textAlign=&quot;<span class="mxmlString">right</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:TextInput</span> id=&quot;<span class="mxmlString">tiAirline</span>&quot; width=&quot;<span class="mxmlString">80</span>&quot; toolTip=&quot;<span class="mxmlString">Please enter an Airline symbol (e.g. FFT = Frontier Airlines)...</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+            <span class="mxmlComponent">&lt;/mx:FormItem&gt;</span>
+            <span class="mxmlComponent">&lt;mx:FormItem</span> required=&quot;<span class="mxmlString">true</span>&quot;<span class="mxmlComponent">&gt;</span>
+                <span class="mxmlComponent">&lt;mx:HBox</span> width=&quot;<span class="mxmlString">100%</span>&quot;<span class="mxmlComponent">&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:Label</span> text=&quot;<span class="mxmlString">Flight Number:</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdana</span>&quot; fontSize=&quot;<span class="mxmlString">12</span>&quot; color=&quot;<span class="mxmlString">#ffffff</span>&quot; textAlign=&quot;<span class="mxmlString">right</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:TextInput</span> id=&quot;<span class="mxmlString">tiFlightNo</span>&quot; width=&quot;<span class="mxmlString">80</span>&quot; toolTip=&quot;<span class="mxmlString">Please enter a Flight Number (e.g. 663)...</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+            <span class="mxmlComponent">&lt;/mx:FormItem&gt;</span>
+            <span class="mxmlComponent">&lt;mx:Label</span> id=&quot;<span class="mxmlString">lblProgress</span>&quot; color=&quot;<span class="mxmlString">#ff3300</span>&quot; fontStyle=&quot;<span class="mxmlString">italic</span>&quot; fontSize=&quot;<span class="mxmlString">11</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot;<span class="mxmlComponent">/&gt;</span>
+            <span class="mxmlComponent">&lt;mx:VBox</span> id=&quot;<span class="mxmlString">hiddenVBox</span>&quot; visible=&quot;<span class="mxmlString">false</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;/mx:Form&gt;</span>
+        <span class="mxmlComponent">&lt;mx:ControlBar&gt;</span>
+            <span class="mxmlComponent">&lt;mx:HBox</span> width=&quot;<span class="mxmlString">100%</span>&quot;<span class="mxmlComponent">&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnSearch</span>&quot; label=&quot;<span class="mxmlString">Search</span>&quot; icon=&quot;<span class="mxmlString">{</span>imgGetFlight<span class="mxmlString">}</span>&quot; click=&quot;validateForm<span class="asBracket">(</span><span class="asString">&apos;live&apos;</span><span class="asBracket">)</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdanna</span>&quot; fontSize=&quot;<span class="mxmlString">14</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot; toolTip=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>blnConnected<span class="asBracket">)</span><span class="asOperator">?</span><span class="asString">&apos;Click to search for this flight in realtime...&apos;</span><span class="asOperator">:</span><span class="asString">&apos;Offline mode - Archive search is still active...&apos;</span><span class="mxmlString">}</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnHistory</span>&quot; label=&quot;<span class="mxmlString">Archive</span>&quot; icon=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>connection.iStatus<span class="asOperator">!=</span>0<span class="asBracket">)</span><span class="asOperator">?</span>imgGetArchFlight<span class="asOperator">:</span>imgGetArchFlightOff<span class="mxmlString">}</span>&quot; click=&quot;validateForm<span class="asBracket">(</span><span class="asString">&apos;archive&apos;</span><span class="asBracket">)</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdanna</span>&quot; fontSize=&quot;<span class="mxmlString">14</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot; toolTip=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>blnConnected<span class="asBracket">)</span><span class="asOperator">?</span><span class="asString">&apos;Click to search the archives for this flight...&apos;</span><span class="asOperator">:</span><span class="asString">&apos;Offline mode - button is currently inactive...&apos;</span><span class="mxmlString">}</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnViewSource</span>&quot; label=&quot;<span class="mxmlString">Source</span>&quot; icon=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>connection.iStatus<span class="asOperator">!=</span>0<span class="asBracket">)</span><span class="asOperator">?</span>imgSrcCode<span class="asOperator">:</span>imgSrcCodeOff<span class="mxmlString">}</span>&quot; click=&quot;goThere<span class="asBracket">(</span><span class="asString">&apos;http://labs.insideflex.com/airtraining/gofly/bin/srcview/index.html&apos;</span><span class="asBracket">)</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdanna</span>&quot; fontSize=&quot;<span class="mxmlString">14</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot; toolTip=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>blnConnected<span class="asBracket">)</span><span class="asOperator">?</span><span class="asString">&apos;Click to view the source code...&apos;</span><span class="asOperator">:</span><span class="asString">&apos;Offline mode - button is currently inactive...&apos;</span><span class="mxmlString">}</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnViewPDF</span>&quot; label=&quot;<span class="mxmlString">PDF</span>&quot; icon=&quot;<span class="mxmlString">@Embed(&apos;assets/images/acrobat.png&apos;)</span>&quot; click=&quot;getPDF<span class="asBracket">()</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdanna</span>&quot; fontSize=&quot;<span class="mxmlString">14</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot; toolTip=&quot;<span class="mxmlString">Click to preview the &apos;Apollo in Flight&apos; book that demonstrates creating this Go Fly example...</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnExit</span>&quot; label=&quot;<span class="mxmlString">Exit</span>&quot; icon=&quot;<span class="mxmlString">@Embed(&apos;assets/images/door_out.png&apos;)</span>&quot; click=&quot;window.close<span class="asBracket">()</span>&quot; fontFamily=&quot;<span class="mxmlString">Verdanna</span>&quot; fontSize=&quot;<span class="mxmlString">14</span>&quot; fontWeight=&quot;<span class="mxmlString">bold</span>&quot; toolTip=&quot;<span class="mxmlString">Click to exit this application...</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Spacer</span> width=&quot;<span class="mxmlString">10</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;mx:Image</span> id=&quot;<span class="mxmlString">imgStatus</span>&quot; width=&quot;<span class="mxmlString">24</span>&quot; height=&quot;<span class="mxmlString">24</span>&quot;<span class="mxmlComponent">/&gt;</span>
+            <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+        <span class="mxmlComponent">&lt;/mx:ControlBar&gt;</span>
+    <span class="mxmlComponent">&lt;/mx:Panel&gt;</span>
+    
+<span class="mxmlComponent">&lt;/mx:WindowedApplication&gt;</span></pre></body>
+</html>

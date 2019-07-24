@@ -1,0 +1,92 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>FlightDG.mxml</title>
+<link rel="stylesheet" type="text/css" href="../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="mxmlCdata">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="mxmlComponent">&lt;mx:VBox</span> xmlns:mx=&quot;<span class="mxmlString">http://www.adobe.com/2006/mxml</span>&quot; horizontalCenter=&quot;<span class="mxmlString">0</span>&quot; creationComplete=&quot;initComp<span class="asBracket">()</span>&quot; verticalCenter=&quot;<span class="mxmlString">0</span>&quot; width=&quot;<span class="mxmlString">{</span>winwidth<span class="mxmlString">}</span>&quot; height=&quot;<span class="mxmlString">{</span>winheight<span class="mxmlString">}</span>&quot;<span class="mxmlComponent">&gt;</span>
+
+    <span class="mxmlTag">&lt;mx:Script&gt;</span>
+        <span class="asOperator">&lt;!</span><span class="asBracket">[</span>CDATA<span class="asBracket">[</span>
+            <span class="asReserved">import</span> mx.core.Application;
+            <span class="asReserved">import</span> mx.controls.Alert;
+            <span class="asReserved">import</span> mx.utils.ObjectUtil;
+            <span class="asReserved">import</span> mx.controls.HTML;
+            
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winwidth<span class="asOperator">:</span>Number <span class="asOperator">=</span> 400;
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">private</span> <span class="asVar">var</span> winheight<span class="asOperator">:</span>Number <span class="asOperator">=</span> 400;
+            <span class="asComment">// embed images and declare persistent image classes
+</span>            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/playback.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgPlayback<span class="asOperator">:</span>Class;
+            <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;assets/images/playback_off.png&quot;</span><span class="asBracket">)]</span>
+            <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgPlaybackOff<span class="asOperator">:</span>Class;
+            <span class="asReserved">public</span> <span class="asVar">var</span> newWindow<span class="asOperator">:</span>NativeWindow;
+            <span class="asReserved">private</span> <span class="asVar">var</span> component<span class="asOperator">:</span>FlightPlayBack;
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> initComp<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                btnClose.setFocus<span class="asBracket">()</span>;
+                <span class="asComment">//Alert.show(ObjectUtil.toString(Application.application.arcFlights.list.source[0].list.source));
+</span>                Application.application.aryFlightDetails <span class="asOperator">=</span> Application.application.arcFlights.list.source<span class="asBracket">[</span>0<span class="asBracket">]</span>.list.source;
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> closeWindow<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                Application.application.blnWindowOpen <span class="asOperator">=</span> <span class="asReserved">false</span>;
+                <span class="asReserved">this</span>.stage.window.close<span class="asBracket">()</span>;
+            <span class="asBracket">}</span>
+
+             <span class="asReserved">private</span> <span class="asFunction">function</span> getDetails<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                <span class="asReserved">if</span> <span class="asBracket">(</span>dgFlights.selectedIndex <span class="asOperator">&gt;</span> <span class="asOperator">-</span>1<span class="asBracket">)</span> <span class="asBracket">{</span>
+                    Application.application.getArchFlightDetails<span class="asBracket">(</span>dgFlights.selectedItem.FLIGHTNUM, dgFlights.selectedItem.FLIGHTID<span class="asBracket">)</span>;
+                <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                    <span class="asComment">// nothing
+</span>                    <span class="asReserved">return</span>;
+                <span class="asBracket">}</span>
+                <span class="asComment">//closeWindow();
+</span>            <span class="asBracket">}</span>
+
+            <span class="asReserved">private</span> <span class="asFunction">function</span> getFormattedDate<span class="asBracket">(</span>item<span class="asOperator">:</span>Object, column<span class="asOperator">:</span>DataGridColumn<span class="asBracket">)</span><span class="asOperator">:</span>String <span class="asBracket">{</span>
+                <span class="asReserved">return</span> dateformatter.format<span class="asBracket">(</span>item.FLIGHTLOOKUPTIMESTAMP<span class="asBracket">)</span>;    
+            <span class="asBracket">}</span>
+            
+            <span class="asReserved">private</span> <span class="asFunction">function</span> replayAll<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+                newWindow <span class="asOperator">=</span> <span class="asReserved">new</span> NativeWindow<span class="asBracket">(</span><span class="asReserved">true</span>, <span class="asReserved">new</span> NativeWindowInitOptions<span class="asBracket">())</span>;
+                newWindow.title <span class="asOperator">=</span> <span class="asString">&quot;AIR (Apollo) in Flight PlayBack: &quot;</span> <span class="asOperator">+</span> Application.application.tiAirline.text <span class="asOperator">+</span> Application.application.tiFlightNo.text;
+                newWindow.stage.align <span class="asOperator">=</span> StageAlign.TOP_LEFT;
+                newWindow.stage.scaleMode <span class="asOperator">=</span> StageScaleMode.NO_SCALE;
+                newWindow.width <span class="asOperator">=</span> Capabilities.screenResolutionX<span class="asOperator">/</span>1.4;
+                newWindow.height <span class="asOperator">=</span> Capabilities.screenResolutionY<span class="asOperator">/</span>1.4;
+                component <span class="asOperator">=</span> <span class="asReserved">new</span> FlightPlayBack<span class="asBracket">()</span>;
+                hiddenVBox.addChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                hiddenVBox.removeChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                newWindow.stage.addChild<span class="asBracket">(</span>component<span class="asBracket">)</span>;
+                <span class="asComment">//closeWindow();
+</span>            <span class="asBracket">}</span>                        
+        <span class="asBracket">]]</span><span class="asOperator">&gt;</span>
+    <span class="mxmlTag">&lt;/mx:Script&gt;</span>
+    
+    <span class="mxmlComponent">&lt;mx:DateFormatter</span> id=&quot;<span class="mxmlString">dateformatter</span>&quot; formatString=&quot;<span class="mxmlString">M/DD/YYYY J:NN</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    
+    <span class="mxmlComponent">&lt;mx:Spacer</span> height=&quot;<span class="mxmlString">2</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:HBox&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Spacer</span> width=&quot;<span class="mxmlString">4</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnPlayAll</span>&quot; label=&quot;<span class="mxmlString">Play All</span>&quot; icon=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>Application.application.arcFlights.list.source<span class="asBracket">[</span>0<span class="asBracket">]</span>.list.source.length<span class="asOperator">!=</span>0<span class="asBracket">)</span><span class="asOperator">?</span>imgPlayback<span class="asOperator">:</span>imgPlaybackOff<span class="mxmlString">}</span>&quot; click=&quot;replayAll<span class="asBracket">()</span>&quot; enabled=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>Application.application.arcFlights.list.source<span class="asBracket">[</span>0<span class="asBracket">]</span>.list.source.length<span class="asOperator">!=</span>0<span class="asBracket">)</span><span class="asOperator">?</span><span class="asReserved">true</span><span class="asOperator">:</span><span class="asReserved">false</span><span class="mxmlString">}</span>&quot;  toolTip=&quot;<span class="mxmlString">{</span><span class="asBracket">(</span>Application.application.arcFlights.list.source<span class="asBracket">[</span>0<span class="asBracket">]</span>.list.source.length<span class="asOperator">!=</span>0<span class="asBracket">)</span><span class="asOperator">?</span><span class="asString">&apos;Click to playback a loop of this flight\&apos;s details...&apos;</span><span class="asOperator">:</span><span class="asString">&apos;&apos;</span><span class="mxmlString">}</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Button</span> id=&quot;<span class="mxmlString">btnClose</span>&quot; label=&quot;<span class="mxmlString">Close</span>&quot; icon=&quot;<span class="mxmlString">@Embed(&apos;assets/images/door_out.png&apos;)</span>&quot; click=&quot;closeWindow<span class="asBracket">()</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+    <span class="mxmlComponent">&lt;mx:Spacer</span> height=&quot;<span class="mxmlString">2</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:HBox&gt;</span>
+        <span class="mxmlComponent">&lt;mx:Spacer</span> width=&quot;<span class="mxmlString">4</span>&quot;<span class="mxmlComponent">/&gt;</span>
+        <span class="mxmlComponent">&lt;mx:DataGrid</span> id=&quot;<span class="mxmlString">dgFlights</span>&quot; dataProvider=&quot;<span class="mxmlString">{</span>Application.application.arcFlights.list.source<span class="asBracket">[</span>0<span class="asBracket">]</span>.list.source<span class="mxmlString">}</span>&quot; itemClick=&quot;getDetails<span class="asBracket">()</span>&quot; width=&quot;<span class="mxmlString">{</span>winwidth <span class="asOperator">*</span> .95<span class="mxmlString">}</span>&quot; height=&quot;<span class="mxmlString">{</span>winheight <span class="asOperator">*</span> .88<span class="mxmlString">}</span>&quot; toolTip=&quot;<span class="mxmlString">Select any flight snapshot to display the flight details...</span>&quot;<span class="mxmlComponent">&gt;</span>
+                <span class="mxmlComponent">&lt;mx:columns&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:DataGridColumn</span> headerText=&quot;<span class="mxmlString">Flight</span>&quot; dataField=&quot;<span class="mxmlString">FLIGHTNUM</span>&quot; width=&quot;<span class="mxmlString">80</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                    <span class="mxmlComponent">&lt;mx:DataGridColumn</span> headerText=&quot;<span class="mxmlString">Date</span>&quot; labelFunction=&quot;<span class="mxmlString">getFormattedDate</span>&quot; width=&quot;<span class="mxmlString">120</span>&quot;<span class="mxmlComponent">/&gt;</span>
+                <span class="mxmlComponent">&lt;/mx:columns&gt;</span>
+        <span class="mxmlComponent">&lt;/mx:DataGrid&gt;</span>
+    <span class="mxmlComponent">&lt;/mx:HBox&gt;</span>
+    <span class="mxmlComponent">&lt;mx:Spacer</span> height=&quot;<span class="mxmlString">2</span>&quot;<span class="mxmlComponent">/&gt;</span>
+    <span class="mxmlComponent">&lt;mx:VBox</span> id=&quot;<span class="mxmlString">hiddenVBox</span>&quot; visible=&quot;<span class="mxmlString">false</span>&quot;<span class="mxmlComponent">/&gt;</span>
+<span class="mxmlComponent">&lt;/mx:VBox&gt;</span></pre></body>
+</html>

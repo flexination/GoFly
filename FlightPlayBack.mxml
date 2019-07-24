@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="fillFlightInfo()" horizontalCenter="0" verticalCenter="0" width="{winwidth}" height="{winheight}">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.controls.Alert;
+			
+			[Bindable] private var winwidth:Number = Capabilities.screenResolutionX/1.5;
+			[Bindable] private var winheight:Number = Capabilities.screenResolutionY/1.5;
+			[Bindable] private var aryFlightsToReplay:Array = new Array();
+			[Bindable] private var counter:int = 0;
+			private var myTimer:Timer = new Timer(500, 1);
+			// declare a persistent Timer (5 seconds)
+			[Bindable] private var myTimer2:Timer = new Timer(5000, Application.application.aryFlightDetails.length);
+			
+			private function fillFlightInfo():void {
+				aryFlightsToReplay = Application.application.aryFlightDetails;
+				myTimer.addEventListener("timer", onTimer);
+				myTimer2.addEventListener("timer", onTimer);
+				myTimer.start();
+				btnClose.setFocus();
+			}
+
+			private function onTimer(event:TimerEvent):void {
+				htmlFlightInfo.htmlText = Application.application.aryFlightDetails[counter].FLIGHTDETAILS;
+				counter++;
+				myTimer2.start();
+			}
+			
+			private function onTimer2(event:TimerEvent):void {
+				if (counter<aryFlightsToReplay.length) {
+					htmlFlightInfo.htmlText = Application.application.aryFlightDetails[counter].FLIGHTDETAILS;
+					counter++;
+				} else {
+					closeWindow();
+				}
+			}
+
+			private function closeWindow():void {
+				Application.application.blnWindowOpen = false;
+				this.stage.window.close();
+			}
+		]]>
+	</mx:Script>
+	<mx:Spacer height="2"/>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:Button id="btnClose" label="Close" icon="@Embed('assets/images/door_out.png')" click="closeWindow()"/>
+	</mx:HBox>
+	<mx:Spacer height="2"/>
+	<mx:HTML id="htmlFlightInfo" width="{winwidth}" height="{winheight}"/>
+</mx:VBox>

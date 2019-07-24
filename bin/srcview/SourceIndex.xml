@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<index>
+	<title>Source of GoFly</title>
+	<nodes>
+		<node label="assets">
+			<node label="icons">
+				<node label="AIRApp_128.png" icon="imageIcon" url="source/assets/icons/AIRApp_128.png.html"/>
+				<node label="AIRApp_16.png" icon="imageIcon" url="source/assets/icons/AIRApp_16.png.html"/>
+				<node label="AIRApp_32.png" icon="imageIcon" url="source/assets/icons/AIRApp_32.png.html"/>
+				<node label="AIRApp_48.png" icon="imageIcon" url="source/assets/icons/AIRApp_48.png.html"/>
+			</node>
+			<node label="images">
+				<node label="acrobat.png" icon="imageIcon" url="source/assets/images/acrobat.png.html"/>
+				<node label="door_out.png" icon="imageIcon" url="source/assets/images/door_out.png.html"/>
+				<node label="frown.png" icon="imageIcon" url="source/assets/images/frown.png.html"/>
+				<node label="playback.png" icon="imageIcon" url="source/assets/images/playback.png.html"/>
+				<node label="playback_off.png" icon="imageIcon" url="source/assets/images/playback_off.png.html"/>
+				<node label="smile.png" icon="imageIcon" url="source/assets/images/smile.png.html"/>
+				<node label="world_link.png" icon="imageIcon" url="source/assets/images/world_link.png.html"/>
+				<node label="world_link_off.png" icon="imageIcon" url="source/assets/images/world_link_off.png.html"/>
+				<node label="zoom.png" icon="imageIcon" url="source/assets/images/zoom.png.html"/>
+				<node label="zoom_off.png" icon="imageIcon" url="source/assets/images/zoom_off.png.html"/>
+				<node label="zoomarchive.png" icon="imageIcon" url="source/assets/images/zoomarchive.png.html"/>
+				<node label="zoomarchive_off.png" icon="imageIcon" url="source/assets/images/zoomarchive_off.png.html"/>
+			</node>
+			<node label="pdfs">
+				<node label="AIRinFlightPreview.pdf" url="source/assets/pdfs/AIRinFlightPreview.pdf"/>
+			</node>
+		</node>
+		<node label="info.airapps.actionscripts" icon="packageIcon" expanded="true">
+			<node label="ConnectionStatus.as" icon="actionScriptIcon" url="source/info/airapps/actionscripts/ConnectionStatus.as.html"/>
+		</node>
+		<node label="info.airapps.cfcs">
+			<node label="flight.cfc" url="source/info/airapps/cfcs/flight.cfc.txt"/>
+		</node>
+		<node label="AIRinFlightContainer.mxml" icon="mxmlIcon" url="source/AIRinFlightContainer.mxml.html"/>
+		<node label="FlightDetails.mxml" icon="mxmlIcon" url="source/FlightDetails.mxml.html"/>
+		<node label="FlightDetailsOffline.mxml" icon="mxmlIcon" url="source/FlightDetailsOffline.mxml.html"/>
+		<node label="FlightDG.mxml" icon="mxmlIcon" url="source/FlightDG.mxml.html"/>
+		<node label="FlightPlayBack.mxml" icon="mxmlIcon" url="source/FlightPlayBack.mxml.html"/>
+		<node label="gofly-app.xml" url="source/gofly-app.xml.txt"/>
+		<node selected="true" label="gofly.mxml" icon="mxmlAppIcon" url="source/gofly.mxml.html"/>
+	</nodes>
+	<zipfile label="Download source (ZIP, 397K)" url="GoFly.zip"/>
+	<sdklink label="Download Flex 2 SDK" url="http://www.adobe.com/go/flex2_sdk"/>
+</index>

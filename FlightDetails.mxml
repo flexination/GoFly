@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="fillFlightInfo()" horizontalCenter="0" verticalCenter="0" width="{winwidth}" height="{winheight}">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.ResultEvent;
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.controls.Alert;
+			
+			[Bindable] private var winwidth:Number = Capabilities.screenResolutionX/1.5;
+			[Bindable] private var winheight:Number = Capabilities.screenResolutionY/1.5;
+
+			public function fillFlightInfo():void {
+				if (mx.core.Application.application.txtFlightInfo!="") {
+					htmlFlightInfo.htmlText = mx.core.Application.application.txtFlightInfo;
+					htmlFlightInfo.visible = true;
+				}
+				btnClose.setFocus();
+			}
+
+			private function closeWindow():void {
+				Application.application.blnWindowOpen = false;
+				this.stage.window.close();
+			}
+		]]>
+	</mx:Script>
+	<mx:Spacer height="2"/>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:Button id="btnClose" label="Close" icon="@Embed('assets/images/door_out.png')" click="closeWindow()"/>
+	</mx:HBox>
+	<mx:Spacer height="2"/>
+	<mx:HTML id="htmlFlightInfo" width="{winwidth}" height="{winheight}"/>
+</mx:VBox>

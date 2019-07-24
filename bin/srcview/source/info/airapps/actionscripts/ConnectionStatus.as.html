@@ -1,0 +1,77 @@
+<!-- saved from url=(0014)about:internet -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>ConnectionStatus.as</title>
+<link rel="stylesheet" type="text/css" href="../../../../SourceStyles.css"/>
+</head>
+
+<body><pre><span class="asPackage">package</span> info.airapps.actionscripts
+<span class="asBracket">{</span>
+    <span class="asComment">// imports needed for this AS Class
+</span>    <span class="asReserved">import</span> flash.events.NetStatusEvent;
+    <span class="asReserved">import</span> flash.system.System;
+    <span class="asReserved">import</span> flash.net.URLLoader;
+    <span class="asReserved">import</span> flash.net.URLRequest;
+    <span class="asReserved">import</span> mx.managers.CursorManager;
+    <span class="asReserved">import</span> flash.events.HTTPStatusEvent;
+    <span class="asReserved">import</span> flash.events.IOErrorEvent;
+    <span class="asReserved">import</span> mx.core.Application;
+
+    <span class="asReserved">public</span> <span class="asClass">class</span> ConnectionStatus
+    <span class="asBracket">{</span>
+        <span class="asComment">// embed images and declare persistent image classes
+</span>        <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;../../../assets/images/smile.png&quot;</span><span class="asBracket">)]</span>
+        <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgConnected<span class="asOperator">:</span>Class;
+        <span class="asBracket">[</span>Embed<span class="asBracket">(</span>source<span class="asOperator">=</span><span class="asString">&quot;../../../assets/images/frown.png&quot;</span><span class="asBracket">)]</span>
+        <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> imgDisconnected<span class="asOperator">:</span>Class;
+        <span class="asBracket">[</span><span class="asMetadata">Bindable</span><span class="asBracket">]</span> <span class="asReserved">public</span> <span class="asVar">var</span> iStatus<span class="asOperator">:</span>int;
+        
+        <span class="asComment">// checks the connectivity by accessing the URL, http://labs.insideflex.com
+</span>        <span class="asReserved">public</span> <span class="asFunction">function</span> checkConnection<span class="asBracket">()</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+            <span class="asComment">// triggers the display of a watch glass or busy cursor
+</span>            CursorManager.setBusyCursor<span class="asBracket">()</span>;
+            <span class="asComment">// declare a URLRequest variable
+</span>            <span class="asVar">var</span> headRequest<span class="asOperator">:</span>URLRequest <span class="asOperator">=</span> <span class="asReserved">new</span> URLRequest<span class="asBracket">()</span>;
+            <span class="asComment">// set the URLRequest method to HEAD
+</span>            headRequest.method <span class="asOperator">=</span> <span class="asString">&quot;HEAD&quot;</span>;
+            <span class="asComment">// set the URL
+</span>            headRequest.url <span class="asOperator">=</span> <span class="asString">&quot;http://labs.insideflex.com&quot;</span>;
+            <span class="asComment">// declare a URLLoader variable and pass the URLRequest
+</span>            <span class="asVar">var</span> response<span class="asOperator">:</span>URLLoader <span class="asOperator">=</span> <span class="asReserved">new</span> URLLoader<span class="asBracket">(</span>headRequest<span class="asBracket">)</span>;
+            <span class="asComment">/* add a HTTP_STATUS event listener: Listens for the HTTP_STATUS; 
+            statusChanged() function is called when the listener event occurs */</span>
+            response.addEventListener<span class="asBracket">(</span>HTTPStatusEvent.HTTP_STATUS, statusChanged<span class="asBracket">)</span>;
+            <span class="asComment">/* add a IO_ERROR event listener: Listens for an I/O connectivity issue; 
+            onError() function is called if the listener event occurs */</span>
+            response.addEventListener<span class="asBracket">(</span>IOErrorEvent.IO_ERROR, onError<span class="asBracket">)</span>; 
+        <span class="asBracket">}</span>
+
+        <span class="asComment">// handler function for HTTPStatusEvent events
+</span>        <span class="asReserved">public</span> <span class="asFunction">function</span> statusChanged<span class="asBracket">(</span>status<span class="asOperator">:</span>HTTPStatusEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+            <span class="asComment">// remove the watch glass or busy cursor
+</span>            CursorManager.removeBusyCursor<span class="asBracket">()</span>;
+            <span class="asComment">// conditional to check the status
+</span>            <span class="asReserved">if</span> <span class="asBracket">(</span>status.status <span class="asOperator">==</span> 0<span class="asBracket">)</span> <span class="asBracket">{</span>
+                iStatus <span class="asOperator">=</span> 0;
+            <span class="asBracket">}</span> <span class="asReserved">else</span> <span class="asBracket">{</span>
+                iStatus <span class="asOperator">=</span> 1;
+            <span class="asBracket">}</span>
+            <span class="asComment">//Alert.show(iStatus.toString());
+</span>        <span class="asBracket">}</span>
+        <span class="asComment">// handler function for IOErrorEvent events
+</span>        <span class="asReserved">public</span> <span class="asFunction">function</span> onError<span class="asBracket">(</span>error<span class="asOperator">:</span>IOErrorEvent<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+            <span class="asComment">// remove the watch glass or busy cursor
+</span>            CursorManager.removeBusyCursor<span class="asBracket">()</span>;
+            iStatus <span class="asOperator">=</span> 0;
+        <span class="asBracket">}</span>
+
+        <span class="asComment">// handler function for networkChangeEvent events
+</span>        <span class="asReserved">public</span> <span class="asFunction">function</span> onConnectionChange<span class="asBracket">(</span>networkChangeEvent<span class="asOperator">:</span>Event<span class="asBracket">)</span><span class="asOperator">:</span><span class="asReserved">void</span> <span class="asBracket">{</span>
+            <span class="asComment">// check the connection
+</span>            checkConnection<span class="asBracket">()</span>;
+        <span class="asBracket">}</span>
+    <span class="asBracket">}</span>
+<span class="asBracket">}</span>            </pre></body>
+</html>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="initComp()" width="{winwidth}" height="{winheight}">
+	<mx:Script>
+		<![CDATA[
+			import flash.html.HTMLPDFCapability;
+			import flash.html.HTMLControl;
+			import flash.net.URLRequest;
+			
+			[Bindable] private var winwidth:Number = Capabilities.screenResolutionX/1.6;
+			[Bindable] private var winheight:Number = Capabilities.screenResolutionY/1.6;
+			private var pdfContainer:HTMLControl;
+			
+			private function initComp():void {
+				btnClose.setFocus();
+				switch (HTMLControl.pdfCapability) {
+					case "HTMLPDFCapability.STATUS_OK":
+						statusLb.text += " OK";
+						break;
+					case "HTMLPDFCapability.ERROR_INSTALLED_READER_NOT_FOUND":
+						statusLb.text += " Unable to load pdf files. Acrobat reader not found.";
+						return;
+						break;
+					case "HTMLPDFCapability.ERROR_INSTALLED_READER_TOO_OLD":
+						statusLb.text += " Unable to load pdf files. Please check your Acrobat reader version.";
+						return;
+						break;
+					case "HTMLPDFCapability.ERROR_PREFERRED_READER_TOO_OLD":
+						statusLb.text += " Unable to load pdf files. Please check your Acrobat reader version.";
+						return;
+						break;
+				}
+				pdfContainer = new HTMLControl();
+				pdfContainer.width = htmlContainer.width;
+				pdfContainer.height = htmlContainer.height;
+				pdfContainer.load(new URLRequest("assets/pdfs/AIRinFlightPreview.pdf"));
+				htmlContainer.addChild(pdfContainer);
+			}
+
+			private function closeWindow():void {
+				this.stage.window.close();
+			}
+			
+		]]>
+	</mx:Script>
+
+	<mx:Spacer height="2"/>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:Button id="btnClose" label="Close" icon="@Embed('assets/images/door_out.png')" click="closeWindow()"/>
+		<mx:Label id="statusLb" x="10" y="121" color="#D62C2C" fontWeight="bold"/>
+	</mx:HBox>
+	<mx:HBox>
+		<mx:Spacer width="4"/>
+		<mx:HTML id="htmlContainer" horizontalCenter="0" bottom="0" width="{winwidth}" height="{winheight}"/>
+	</mx:HBox>
+</mx:VBox>
